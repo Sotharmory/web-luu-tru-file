@@ -1,0 +1,146 @@
+@startuml Sequence_FileManagement
+
+actor User
+participant "Frontend" as FE
+participant "FileController" as FC
+participant "JwtAuthenticationFilter" as JAF
+participant "FileService" as FS
+participant "GridFsTemplate" as GFT
+participant "FileMetadataRepository" as FMR
+participant "Database" as DB
+participant "GridFS" as GFS
+
+== Upload File Process ==
+
+User -> FE: Chọn file để upload
+FE -> FE: Validate file
+alt File valid
+    FE -> FC: POST /api/files/upload
+    FC -> JAF: Validate JWT token
+    JAF -> JAF: Extract user email
+    JAF --> FC: User email
+    FC -> FS: uploadFile(file, userEmail)
+    FS -> FS: Validate file not empty
+    FS -> FS: Generate unique filename
+    FS -> FS: Determine file type
+    FS -> GFT: store(inputStream, fileName, contentType)
+    GFT -> GFS: Store file
+    GFS --> GFT: GridFS ID
+    GFT --> FS: ObjectId
+    FS -> FS: Create FileMetadata
+    FS -> FMR: save(metadata)
+    FMR -> DB: Insert metadata
+    DB --> FMR: Saved metadata
+    FMR --> FS: FileMetadata
+    FS -> FS: Create FileUploadResponse
+    FS --> FC: FileUploadResponse
+    FC --> FE: Success response
+    FE -> FE: Update file list
+    FE --> User: Show success message
+else File invalid
+    FE --> User: Show validation error
+end
+
+== Download File Process ==
+
+User -> FE: Click download file
+FE -> FC: GET /api/files/download/{fileId}
+FC -> JAF: Validate JWT token
+JAF --> FC: User email
+FC -> FS: downloadFile(fileId)
+FS -> FMR: findById(fileId)
+FMR -> DB: Query metadata
+DB --> FMR: FileMetadata
+FMR --> FS: FileMetadata
+FS -> GFT: findOne(query)
+GFT -> GFS: Query file
+GFS --> GFT: GridFSFile
+GFT --> FS: GridFSFile
+FS -> GFT: getResource(gridFSFile)
+GFT --> FS: GridFsResource
+FS -> FS: getInputStream()
+FS --> FC: InputStream
+FC -> FC: Create ResponseEntity
+FC --> FE: File download
+FE --> User: Download file
+
+== Get User Files Process ==
+
+User -> FE: Access file management
+FE -> FC: GET /api/files/user-files
+FC -> JAF: Validate JWT token
+JAF --> FC: User email
+FC -> FS: getUserFiles(userEmail)
+FS -> FMR: findByUploadedByOrderByUploadedAtDesc(userEmail)
+FMR -> DB: Query files
+DB --> FMR: List<FileMetadata>
+FMR --> FS: List<FileMetadata>
+FS -> FS: Convert to FileUploadResponse
+FS --> FC: List<FileUploadResponse>
+FC --> FE: File list
+FE --> User: Display files
+
+== Delete File Process ==
+
+User -> FE: Click delete file
+FE -> FC: DELETE /api/files/{fileId}
+FC -> JAF: Validate JWT token
+JAF --> FC: User email
+FC -> FS: deleteFile(fileId, userEmail)
+FS -> FMR: findById(fileId)
+FMR -> DB: Query metadata
+DB --> FMR: FileMetadata
+FMR --> FS: FileMetadata
+FS -> FS: Check file ownership
+alt User owns file
+    FS -> GFT: delete(query)
+    GFT -> GFS: Delete file
+    GFS --> GFT: Deleted
+    GFT --> FS: Deleted
+    FS -> FMR: deleteById(fileId)
+    FMR -> DB: Delete metadata
+    DB --> FMR: Deleted
+    FMR --> FS: Deleted
+    FS --> FC: Success
+    FC --> FE: Success response
+    FE -> FE: Update file list
+    FE --> User: Show success message
+else User doesn't own file
+    FS --> FC: Error "No permission"
+    FC --> FE: Error response
+    FE --> User: Show error message
+end
+
+== Rename File Process ==
+
+User -> FE: Click rename file
+FE -> FE: Show rename dialog
+User -> FE: Enter new filename
+FE -> FC: PUT /api/files/{fileId}/rename
+FC -> JAF: Validate JWT token
+JAF --> FC: User email
+FC -> FS: renameFile(fileId, newFileName, userEmail)
+FS -> FMR: findById(fileId)
+FMR -> DB: Query metadata
+DB --> FMR: FileMetadata
+FMR --> FS: FileMetadata
+FS -> FS: Check file ownership
+alt User owns file
+    FS -> FS: Validate new filename
+    FS -> FS: Update originalFileName
+    FS -> FMR: save(metadata)
+    FMR -> DB: Update metadata
+    DB --> FMR: Updated metadata
+    FMR --> FS: FileMetadata
+    FS -> FS: Create FileUploadResponse
+    FS --> FC: FileUploadResponse
+    FC --> FE: Success response
+    FE -> FE: Update file list
+    FE --> User: Show success message
+else User doesn't own file
+    FS --> FC: Error "No permission"
+    FC --> FE: Error response
+    FE --> User: Show error message
+end
+
+@enduml 

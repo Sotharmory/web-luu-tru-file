@@ -1,0 +1,47 @@
+@startuml Activity_Login
+!theme plain
+skinparam backgroundColor #FFFFFF
+skinparam activity {
+    BackgroundColor #E8F4FD
+    BorderColor #2E86AB
+    FontColor #2E86AB
+}
+
+title Biểu đồ Hoạt động - Quy trình Đăng nhập
+
+start
+
+:User truy cập trang đăng nhập;
+
+:User nhập email và password;
+
+:Frontend gửi request đăng nhập;
+
+:AuthController nhận request;
+
+:AuthService xử lý đăng nhập;
+
+if (Email và password hợp lệ?) then (yes)
+    :AuthenticationManager xác thực;
+    :Tìm user trong database;
+    if (User tồn tại?) then (yes)
+        :JwtUtil tạo JWT token;
+        :Tính toán thời gian hết hạn;
+        :Tạo AuthResponse;
+        :Trả về response thành công;
+        :Frontend lưu token vào localStorage;
+        :Frontend lưu userData vào localStorage;
+        :Chuyển hướng đến Dashboard;
+        stop
+    else (no)
+        :Trả về lỗi "Không tìm thấy người dùng";
+    endif
+else (no)
+    :Trả về lỗi "Email hoặc mật khẩu không chính xác";
+endif
+
+:Frontend hiển thị thông báo lỗi;
+
+stop
+
+@enduml 

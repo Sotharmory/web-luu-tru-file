@@ -1,0 +1,331 @@
+@startuml Class_Diagram
+
+!define RECTANGLE class
+
+package "Backend Models" {
+    class User {
+        -id: String
+        -email: String
+        -password: String
+        -firstName: String
+        -lastName: String
+        -enabled: boolean
+        -accountNonExpired: boolean
+        -accountNonLocked: boolean
+        -credentialsNonExpired: boolean
+        -roles: Set<Role>
+        -createdAt: LocalDateTime
+        -updatedAt: LocalDateTime
+        +User()
+        +User(email: String, password: String)
+        +User(email: String, password: String, firstName: String, lastName: String)
+        +getAuthorities(): Collection<GrantedAuthority>
+        +getUsername(): String
+        +isAccountNonExpired(): boolean
+        +isAccountNonLocked(): boolean
+        +isCredentialsNonExpired(): boolean
+        +isEnabled(): boolean
+        +getId(): String
+        +setId(id: String): void
+        +getEmail(): String
+        +setEmail(email: String): void
+        +getPassword(): String
+        +setPassword(password: String): void
+        +getFirstName(): String
+        +setFirstName(firstName: String): void
+        +getLastName(): String
+        +setLastName(lastName: String): void
+        +setEnabled(enabled: boolean): void
+        +setAccountNonExpired(accountNonExpired: boolean): void
+        +setAccountNonLocked(accountNonLocked: boolean): void
+        +setCredentialsNonExpired(credentialsNonExpired: boolean): void
+        +getRoles(): Set<Role>
+        +setRoles(roles: Set<Role>): void
+        +getCreatedAt(): LocalDateTime
+        +setCreatedAt(createdAt: LocalDateTime): void
+        +getUpdatedAt(): LocalDateTime
+        +setUpdatedAt(updatedAt: LocalDateTime): void
+    }
+
+    class FileMetadata {
+        -id: String
+        -fileName: String
+        -originalFileName: String
+        -contentType: String
+        -fileSize: long
+        -gridFsId: String
+        -uploadedBy: String
+        -uploadedAt: LocalDateTime
+        -fileType: String
+        +FileMetadata()
+        +FileMetadata(fileName: String, originalFileName: String, contentType: String, fileSize: long, gridFsId: String, uploadedBy: String, fileType: String)
+        +getId(): String
+        +setId(id: String): void
+        +getFileName(): String
+        +setFileName(fileName: String): void
+        +getOriginalFileName(): String
+        +setOriginalFileName(originalFileName: String): void
+        +getContentType(): String
+        +setContentType(contentType: String): void
+        +getFileSize(): long
+        +setFileSize(fileSize: long): void
+        +getGridFsId(): String
+        +setGridFsId(gridFsId: String): void
+        +getUploadedBy(): String
+        +setUploadedBy(uploadedBy: String): void
+        +getUploadedAt(): LocalDateTime
+        +setUploadedAt(uploadedAt: LocalDateTime): void
+        +getFileType(): String
+        +setFileType(fileType: String): void
+    }
+
+    class PasswordResetToken {
+        -id: String
+        -token: String
+        -email: String
+        -createdAt: LocalDateTime
+        -expiresAt: LocalDateTime
+        -used: boolean
+        +PasswordResetToken()
+        +PasswordResetToken(token: String, email: String)
+        +getId(): String
+        +setId(id: String): void
+        +getToken(): String
+        +setToken(token: String): void
+        +getEmail(): String
+        +setEmail(email: String): void
+        +getCreatedAt(): LocalDateTime
+        +setCreatedAt(createdAt: LocalDateTime): void
+        +getExpiresAt(): LocalDateTime
+        +setExpiresAt(expiresAt: LocalDateTime): void
+        +isUsed(): boolean
+        +setUsed(used: boolean): void
+        +isExpired(): boolean
+    }
+
+    enum Role {
+        USER
+        ADMIN
+    }
+}
+
+package "Backend Services" {
+    class AuthService {
+        -userRepository: UserRepository
+        -passwordResetTokenRepository: PasswordResetTokenRepository
+        -passwordEncoder: PasswordEncoder
+        -jwtUtil: JwtUtil
+        -authenticationManager: AuthenticationManager
+        -emailService: EmailService
+        +login(request: LoginRequest): ApiResponse<AuthResponse>
+        +register(request: RegisterRequest): ApiResponse<String>
+        +forgotPassword(request: ForgotPasswordRequest): ApiResponse<String>
+        +resetPassword(request: ResetPasswordRequest): ApiResponse<String>
+        +validateResetToken(token: String): ApiResponse<String>
+    }
+
+    class FileService {
+        -gridFsTemplate: GridFsTemplate
+        -gridFsOperations: GridFsOperations
+        -fileMetadataRepository: FileMetadataRepository
+        +uploadFile(file: MultipartFile, userEmail: String): FileUploadResponse
+        +getUserFiles(userEmail: String): List<FileUploadResponse>
+        +getUserFilesByType(userEmail: String, fileType: String): List<FileUploadResponse>
+        +downloadFile(fileId: String): InputStream
+        +getFileMetadata(fileId: String): FileMetadata
+        +deleteFile(fileId: String, userEmail: String): void
+        +renameFile(fileId: String, newFileName: String, userEmail: String): FileUploadResponse
+        -determineFileType(contentType: String): String
+        -convertToResponse(metadata: FileMetadata): FileUploadResponse
+    }
+
+    class EmailService {
+        -javaMailSender: JavaMailSender
+        +sendWelcomeEmail(email: String, firstName: String): void
+        +sendPasswordResetEmail(email: String, token: String): void
+    }
+
+    class JwtUtil {
+        -secret: String
+        -expirationTime: long
+        +generateToken(userDetails: UserDetails): String
+        +validateToken(token: String, userDetails: UserDetails): boolean
+        +extractUsername(token: String): String
+        +getExpirationTime(): long
+    }
+}
+
+package "Backend Controllers" {
+    class AuthController {
+        -authService: AuthService
+        +login(request: LoginRequest): ResponseEntity<ApiResponse<AuthResponse>>
+        +register(request: RegisterRequest): ResponseEntity<ApiResponse<String>>
+        +forgotPassword(request: ForgotPasswordRequest): ResponseEntity<ApiResponse<String>>
+        +resetPassword(request: ResetPasswordRequest): ResponseEntity<ApiResponse<String>>
+        +validateResetToken(token: String): ResponseEntity<ApiResponse<String>>
+    }
+
+    class FileController {
+        -fileService: FileService
+        +uploadFile(file: MultipartFile, request: HttpServletRequest): ResponseEntity<ApiResponse<FileUploadResponse>>
+        +getUserFiles(request: HttpServletRequest): ResponseEntity<ApiResponse<List<FileUploadResponse>>>
+        +getUserFilesByType(fileType: String, request: HttpServletRequest): ResponseEntity<ApiResponse<List<FileUploadResponse>>>
+        +downloadFile(fileId: String, request: HttpServletRequest): ResponseEntity<Resource>
+        +deleteFile(fileId: String, request: HttpServletRequest): ResponseEntity<ApiResponse<String>>
+        +renameFile(fileId: String, newFileName: String, request: HttpServletRequest): ResponseEntity<ApiResponse<FileUploadResponse>>
+    }
+}
+
+package "Frontend Components" {
+    class App {
+        -isAuthenticated: boolean
+        -userData: UserData | null
+        -loading: boolean
+        +handleLogin(token: string, userData: UserData): void
+        +handleLogout(): void
+    }
+
+    class Login {
+        -formData: LoginFormData
+        -loading: boolean
+        -error: string
+        +handleChange(e: ChangeEvent): void
+        +handleSubmit(e: FormEvent): void
+    }
+
+    class Register {
+        -formData: RegisterFormData
+        -loading: boolean
+        -error: string
+        +handleChange(e: ChangeEvent): void
+        +handleSubmit(e: FormEvent): void
+    }
+
+    class Dashboard {
+        -userData: UserData
+        -onLogout: () => void
+        +formatExpiryTime(expiresAt: string): string
+    }
+
+    class Home {
+        -userData: UserData
+        -onLogout: () => void
+        -files: FileUploadResponse[]
+        -loading: boolean
+        -selectedFile: File | null
+        +handleFileSelect(e: ChangeEvent): void
+        +handleUpload(): void
+        +handleDownload(fileId: string): void
+        +handleDelete(fileId: string): void
+        +handleRename(fileId: string, newName: string): void
+    }
+}
+
+package "DTOs" {
+    class LoginRequest {
+        -email: String
+        -password: String
+        +getEmail(): String
+        +setEmail(email: String): void
+        +getPassword(): String
+        +setPassword(password: String): void
+    }
+
+    class RegisterRequest {
+        -email: String
+        -password: String
+        -confirmPassword: String
+        -firstName: String
+        -lastName: String
+        +getEmail(): String
+        +setEmail(email: String): void
+        +getPassword(): String
+        +setPassword(password: String): void
+        +getConfirmPassword(): String
+        +setConfirmPassword(confirmPassword: String): void
+        +getFirstName(): String
+        +setFirstName(firstName: String): void
+        +getLastName(): String
+        +setLastName(lastName: String): void
+    }
+
+    class AuthResponse {
+        -token: String
+        -email: String
+        -firstName: String
+        -lastName: String
+        -expiresAt: LocalDateTime
+        +AuthResponse(token: String, email: String, firstName: String, lastName: String, expiresAt: LocalDateTime)
+        +getToken(): String
+        +setToken(token: String): void
+        +getEmail(): String
+        +setEmail(email: String): void
+        +getFirstName(): String
+        +setFirstName(firstName: String): void
+        +getLastName(): String
+        +setLastName(lastName: String): void
+        +getExpiresAt(): LocalDateTime
+        +setExpiresAt(expiresAt: LocalDateTime): void
+    }
+
+    class FileUploadResponse {
+        -id: String
+        -fileName: String
+        -originalFileName: String
+        -contentType: String
+        -fileSize: long
+        -fileType: String
+        -uploadedAt: LocalDateTime
+        -downloadUrl: String
+        +FileUploadResponse(id: String, fileName: String, originalFileName: String, contentType: String, fileSize: long, fileType: String, uploadedAt: LocalDateTime, downloadUrl: String)
+        +getId(): String
+        +setId(id: String): void
+        +getFileName(): String
+        +setFileName(fileName: String): void
+        +getOriginalFileName(): String
+        +setOriginalFileName(originalFileName: String): void
+        +getContentType(): String
+        +setContentType(contentType: String): void
+        +getFileSize(): long
+        +setFileSize(fileSize: long): void
+        +getFileType(): String
+        +setFileType(fileType: String): void
+        +getUploadedAt(): LocalDateTime
+        +setUploadedAt(uploadedAt: LocalDateTime): void
+        +getDownloadUrl(): String
+        +setDownloadUrl(downloadUrl: String): void
+    }
+
+    class ApiResponse<T> {
+        -success: boolean
+        -message: String
+        -data: T
+        +ApiResponse(success: boolean, message: String, data: T)
+        +isSuccess(): boolean
+        +getMessage(): String
+        +getData(): T
+        +static success(message: String, data: T): ApiResponse<T>
+        +static error(message: String): ApiResponse<T>
+    }
+}
+
+' Relationships
+User ||--o{ FileMetadata : "uploads"
+User ||--o{ PasswordResetToken : "has"
+AuthService --> User : "manages"
+AuthService --> PasswordResetToken : "manages"
+AuthService --> EmailService : "uses"
+AuthService --> JwtUtil : "uses"
+FileService --> FileMetadata : "manages"
+AuthController --> AuthService : "uses"
+FileController --> FileService : "uses"
+App --> Login : "contains"
+App --> Register : "contains"
+App --> Dashboard : "contains"
+App --> Home : "contains"
+Login --> AuthResponse : "receives"
+Register --> RegisterRequest : "sends"
+Dashboard --> AuthResponse : "displays"
+Home --> FileUploadResponse : "manages"
+
+@enduml 

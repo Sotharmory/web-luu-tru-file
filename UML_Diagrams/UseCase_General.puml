@@ -1,0 +1,66 @@
+@startuml UseCase_General
+
+left to right direction
+
+actor "User" as U
+actor "Admin" as A
+
+rectangle "P2P File Sharing System" {
+    usecase "Đăng ký tài khoản" as UC1
+    usecase "Đăng nhập" as UC2
+    usecase "Đăng xuất" as UC3
+    usecase "Quên mật khẩu" as UC4
+    usecase "Đặt lại mật khẩu" as UC5
+    usecase "Xem thông tin cá nhân" as UC6
+    usecase "Upload file" as UC7
+    usecase "Download file" as UC8
+    usecase "Xem danh sách file" as UC9
+    usecase "Xóa file" as UC10
+    usecase "Đổi tên file" as UC11
+    usecase "Lọc file theo loại" as UC12
+    usecase "Tìm kiếm file" as UC13
+    usecase "Xem dashboard" as UC14
+    usecase "Quản lý người dùng" as UC15
+    usecase "Xem thống kê hệ thống" as UC16
+    usecase "Quản lý file hệ thống" as UC17
+}
+
+' User relationships
+U --> UC1
+U --> UC2
+U --> UC3
+U --> UC4
+U --> UC5
+U --> UC6
+U --> UC7
+U --> UC8
+U --> UC9
+U --> UC10
+U --> UC11
+U --> UC12
+U --> UC13
+U --> UC14
+
+' Admin relationships
+A --> UC2
+A --> UC3
+A --> UC6
+A --> UC14
+A --> UC15
+A --> UC16
+A --> UC17
+
+' Include relationships
+UC5 ..> UC4 : <<include>>
+UC8 ..> UC9 : <<include>>
+UC10 ..> UC9 : <<include>>
+UC11 ..> UC9 : <<include>>
+UC12 ..> UC9 : <<include>>
+UC13 ..> UC9 : <<include>>
+
+' Extend relationships
+UC15 ..> UC6 : <<extend>>
+UC16 ..> UC9 : <<extend>>
+UC17 ..> UC9 : <<extend>>
+
+@enduml 

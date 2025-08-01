@@ -1,0 +1,61 @@
+@startuml Activity_FileUpload
+
+start
+
+:User đăng nhập thành công;
+
+:User truy cập trang Home/Dashboard;
+
+:User chọn file để upload;
+
+:Frontend validate file;
+note right
+- File size
+- File type
+- File extension
+end note
+
+if (File hợp lệ?) then (yes)
+    :Frontend tạo FormData;
+    :Frontend gửi request upload;
+    :FileController nhận request;
+    
+    :JwtAuthenticationFilter xác thực token;
+    if (Token hợp lệ?) then (yes)
+        :FileService xử lý upload;
+        
+        :Validate file không rỗng;
+        if (File không rỗng?) then (yes)
+            :Tạo unique filename;
+            :Xác định file type;
+            note right
+            - IMAGE
+            - VIDEO  
+            - DOCUMENT
+            end note
+            
+            :GridFsTemplate lưu file vào GridFS;
+            :Tạo FileMetadata;
+            :Lưu metadata vào database;
+            
+            :Tạo FileUploadResponse;
+            :Trả về response thành công;
+            
+            :Frontend cập nhật danh sách file;
+            :Frontend hiển thị thông báo thành công;
+            stop
+        else (no)
+            :Trả về lỗi "File không được để trống";
+        endif
+    else (no)
+        :Trả về lỗi "Token không hợp lệ";
+    endif
+else (no)
+    :Frontend hiển thị lỗi validation;
+endif
+
+:Frontend hiển thị thông báo lỗi;
+
+stop
+
+@enduml 

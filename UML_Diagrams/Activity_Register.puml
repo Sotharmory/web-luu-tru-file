@@ -1,0 +1,54 @@
+@startuml Activity_Register
+
+start
+
+:User truy cập trang đăng ký;
+
+:User nhập thông tin đăng ký;
+note right
+- Email
+- Password
+- Confirm Password
+- First Name
+- Last Name
+end note
+
+:Frontend validate dữ liệu;
+
+if (Dữ liệu hợp lệ?) then (yes)
+    :Frontend gửi request đăng ký;
+    :AuthController nhận request;
+    :AuthService xử lý đăng ký;
+    
+    if (Password và ConfirmPassword khớp?) then (yes)
+        if (Email đã tồn tại?) then (no)
+            :PasswordEncoder hash password;
+            :Tạo User mới;
+            :Lưu User vào database;
+            
+            :EmailService gửi email chào mừng;
+            note right
+            - Welcome email
+            - Account activation
+            - Setup instructions
+            end note
+            
+            :Trả về response thành công;
+            :Frontend hiển thị thông báo thành công;
+            :Chuyển hướng đến trang đăng nhập;
+            stop
+        else (yes)
+            :Trả về lỗi "Email đã được sử dụng";
+        endif
+    else (no)
+        :Trả về lỗi "Mật khẩu xác nhận không khớp";
+    endif
+else (no)
+    :Frontend hiển thị lỗi validation;
+endif
+
+:Frontend hiển thị thông báo lỗi;
+
+stop
+
+@enduml 

@@ -1,0 +1,111 @@
+@startuml Sequence_Auth
+
+actor User
+participant "Frontend" as FE
+participant "AuthController" as AC
+participant "AuthService" as AS
+participant "AuthenticationManager" as AM
+participant "UserRepository" as UR
+participant "JwtUtil" as JWT
+participant "Database" as DB
+
+== Login Process ==
+
+User -> FE: Nhập email/password
+FE -> AC: POST /api/auth/login
+AC -> AS: login(request)
+AS -> AM: authenticate(token)
+AM -> UR: findByEmail(email)
+UR -> DB: Query user
+DB --> UR: User data
+UR --> AM: UserDetails
+AM --> AS: Authentication
+AS -> JWT: generateToken(user)
+JWT --> AS: JWT token
+AS -> AS: Calculate expiration
+AS --> AC: AuthResponse
+AC --> FE: Success response
+FE -> FE: Store token & userData
+FE --> User: Redirect to Dashboard
+
+== Register Process ==
+
+User -> FE: Nhập thông tin đăng ký
+FE -> AC: POST /api/auth/register
+AC -> AS: register(request)
+AS -> AS: Validate passwords match
+AS -> UR: existsByEmail(email)
+UR -> DB: Check email exists
+DB --> UR: Result
+UR --> AS: Email exists status
+alt Email not exists
+    AS -> AS: Create new User
+    AS -> UR: save(user)
+    UR -> DB: Insert user
+    DB --> UR: Saved user
+    AS -> AS: Send welcome email
+    AS --> AC: Success response
+    AC --> FE: Success message
+    FE --> User: Redirect to login
+else Email exists
+    AS --> AC: Error response
+    AC --> FE: Error message
+    FE --> User: Show error
+end
+
+== Forgot Password Process ==
+
+User -> FE: Nhập email
+FE -> AC: POST /api/auth/forgot-password
+AC -> AS: forgotPassword(request)
+AS -> UR: findByEmail(email)
+UR -> DB: Query user
+DB --> UR: User data
+alt User exists
+    AS -> AS: Delete old tokens
+    AS -> AS: Generate new token
+    AS -> AS: Create PasswordResetToken
+    AS -> AS: Save token
+    AS -> AS: Send reset email
+    AS --> AC: Success response
+    AC --> FE: Success message
+    FE --> User: Show success message
+else User not exists
+    AS --> AC: Success response (security)
+    AC --> FE: Success message
+    FE --> User: Show success message
+end
+
+== Reset Password Process ==
+
+User -> FE: Click reset link
+FE -> AC: GET /api/auth/validate-reset-token
+AC -> AS: validateResetToken(token)
+AS -> AS: Find token in database
+alt Token valid
+    AS --> AC: Valid token response
+    AC --> FE: Valid token
+    FE --> User: Show reset form
+    User -> FE: Enter new password
+    FE -> AC: POST /api/auth/reset-password
+    AC -> AS: resetPassword(request)
+    AS -> AS: Validate passwords match
+    AS -> AS: Find token
+    AS -> AS: Validate token status
+    AS -> UR: findByEmail(email)
+    UR -> DB: Query user
+    DB --> UR: User data
+    AS -> AS: Update password
+    AS -> UR: save(user)
+    UR -> DB: Update user
+    AS -> AS: Mark token as used
+    AS --> AC: Success response
+    AC --> FE: Success message
+    FE --> User: Redirect to login
+else Token invalid
+    AS --> AC: Error response
+    AC --> FE: Error message
+    FE --> User: Show error
+end
+
+@enduml 
